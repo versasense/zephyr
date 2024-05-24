@@ -661,6 +661,7 @@ static void pwm_stm32_isr(const struct device *dev)
 	if (cpt->skip_irq != 0u) {
 		if (LL_TIM_IsActiveFlag_UPDATE(cfg->timer)) {
 			LL_TIM_ClearFlag_UPDATE(cfg->timer);
+			return;
 		}
 
 		if (LL_TIM_IsActiveFlag_CC1(cfg->timer)
@@ -685,6 +686,7 @@ static void pwm_stm32_isr(const struct device *dev)
 			cpt->state = CAPTURE_STATE_WAIT_FOR_PERIOD_END;
 		} else {
 			cpt->overflows++;
+			return;
 		}
 	}
 
@@ -696,6 +698,7 @@ static void pwm_stm32_isr(const struct device *dev)
 					[complimentary_channel[cpt->channel] - 1](cfg->timer);
 
 			cpt->period = get_channel_capture[cpt->channel - 1](cfg->timer);
+			cpt->period |= (cpt->overflows << 16);
 			cpt->pulse = get_channel_capture
 					[complimentary_channel[cpt->channel] - 1](cfg->timer);
 		}
@@ -736,7 +739,7 @@ static void pwm_stm32_isr(const struct device *dev)
 
 	if (cpt->overflows) {
 		LOG_ERR("counter overflow during PWM capture");
-		status = -ERANGE;
+		//status = -ERANGE;
 	}
 
 	if (!cpt->continuous) {
